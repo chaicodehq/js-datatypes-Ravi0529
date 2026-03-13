@@ -47,5 +47,57 @@
  *   //      frequentContact: "Swiggy", allAbove100: false, hasLargeTransaction: true }
  */
 export function analyzeUPITransactions(transactions) {
-  // Your code here
+  if (!Array.isArray(transactions) || transactions.length === 0) {
+    return null;
+  }
+
+  const validTransactions = transactions.filter((transaction) => (
+    transaction &&
+    (transaction.type === "credit" || transaction.type === "debit") &&
+    typeof transaction.amount === "number" &&
+    transaction.amount > 0
+  ));
+
+  if (validTransactions.length === 0) {
+    return null;
+  }
+
+  const totalCredit = validTransactions
+    .filter((transaction) => transaction.type === "credit")
+    .reduce((sum, transaction) => sum + transaction.amount, 0);
+  const totalDebit = validTransactions
+    .filter((transaction) => transaction.type === "debit")
+    .reduce((sum, transaction) => sum + transaction.amount, 0);
+  const totalAmount = validTransactions.reduce((sum, transaction) => sum + transaction.amount, 0);
+  const categoryBreakdown = validTransactions.reduce((categories, transaction) => {
+    categories[transaction.category] = (categories[transaction.category] || 0) + transaction.amount;
+    return categories;
+  }, {});
+  const highestTransaction = validTransactions.reduce((highest, transaction) => (
+    transaction.amount > highest.amount ? transaction : highest
+  ));
+  const contactCounts = validTransactions.reduce((counts, transaction) => {
+    counts[transaction.to] = (counts[transaction.to] || 0) + 1;
+    return counts;
+  }, {});
+
+  let frequentContact = validTransactions[0].to;
+  for (const [contact, count] of Object.entries(contactCounts)) {
+    if (count > contactCounts[frequentContact]) {
+      frequentContact = contact;
+    }
+  }
+
+  return {
+    totalCredit,
+    totalDebit,
+    netBalance: totalCredit - totalDebit,
+    transactionCount: validTransactions.length,
+    avgTransaction: Math.round(totalAmount / validTransactions.length),
+    highestTransaction,
+    categoryBreakdown,
+    frequentContact,
+    allAbove100: validTransactions.every((transaction) => transaction.amount > 100),
+    hasLargeTransaction: validTransactions.some((transaction) => transaction.amount >= 5000)
+  };
 }
